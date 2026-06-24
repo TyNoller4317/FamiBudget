@@ -1,0 +1,232 @@
+.fab {
+  position: fixed;
+  bottom: 90px;
+  right: 1.5rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  border: none;
+  font-size: 1.75rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(4, 47, 52, 0.35);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.fab:hover { opacity: 0.9; }
+
+@media (min-width: 769px) {
+  .fab {
+    bottom: 2rem;
+  }
+}
+
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+}
+
+.sheet {
+  background: var(--card, #f7f4f2);
+  border-radius: 24px 24px 0 0;
+  padding: 1.5rem;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  margin: 0 auto 1rem;
+}
+
+.sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.sheet-title {
+  font-weight: 600;
+  font-size: 1.125rem;
+}
+
+.sheet-close {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: var(--muted);
+  line-height: 1;
+  padding: 0.25rem;
+}
+
+.type-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+.type-toggle button {
+  flex: 1;
+  padding: 0.65rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: white;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  color: var(--text);
+  transition: all 0.15s;
+}
+.type-toggle button.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.amount-row {
+  position: relative;
+  margin-bottom: 1rem;
+}
+
+.amount-input {
+  width: 100%;
+  font-size: 2.5rem;
+  font-weight: 700;
+  text-align: center;
+  border: none;
+  border-bottom: 2px solid var(--border);
+  border-radius: 0;
+  outline: none;
+  color: var(--text);
+  padding: 0.5rem 0;
+  background: transparent;
+  box-sizing: border-box;
+}
+.amount-input:focus {
+  border-bottom-color: var(--primary);
+}
+
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+.cat-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.25rem;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  font-size: 0.7rem;
+  background: var(--bg, #e8e2df);
+  font-family: 'Inter', sans-serif;
+  color: var(--text);
+  transition: background 0.15s, border-color 0.15s;
+}
+.cat-tile:hover {
+  background: var(--border, #d6cec9);
+}
+.cat-tile.selected {
+  border-color: var(--primary);
+  background: var(--primary-light, #d6e8f7);
+}
+.cat-tile .cat-emoji {
+  font-size: 1.5rem;
+}
+
+.subtle-input {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: 0.5rem 0;
+  font-size: 0.9rem;
+  font-family: 'Inter', sans-serif;
+  color: var(--text);
+  background: transparent;
+  outline: none;
+  box-sizing: border-box;
+}
+.subtle-input:focus {
+  border-bottom-color: var(--primary);
+}
+.subtle-input::placeholder {
+  color: var(--muted);
+}
+
+.recurring-toggle-row {
+  margin-bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.recurring-toggle-label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.owner-picker {
+  margin-bottom: 0.75rem;
+}
+.owner-picker-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+}
+.owner-picker-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.owner-btn {
+  padding: 0.4rem 1rem;
+  border-radius: 99px;
+  border: 1.5px solid var(--border);
+  background: white;
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.15s;
+}
+.owner-btn:hover { border-color: var(--primary); }
+.owner-btn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+@media (min-width: 769px) {
+  .sheet-overlay {
+    align-items: center;
+  }
+  .sheet {
+    background: var(--card, #f7f4f2);
+    border-radius: 24px;
+    width: 480px;
+    margin: auto;
+  }
+}

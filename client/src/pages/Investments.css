@@ -1,0 +1,192 @@
+.portfolio-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.portfolio-value {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.1;
+}
+
+.portfolio-gain {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 0.25rem;
+}
+.portfolio-gain.positive { color: var(--success); }
+.portfolio-gain.negative { color: var(--danger); }
+
+.portfolio-updated {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 0.25rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1.25rem 0 0.75rem;
+}
+.section-header h2 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  width: 50%;
+}
+
+.btn-sm {
+  width: 50%;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.empty-state {
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 1.25rem;
+}
+
+/* Desktop table */
+.inv-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.inv-table th {
+  text-align: left;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 0.75rem 0.5rem 0.5rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+.inv-table td {
+  padding: 0.65rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+.inv-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Mobile card list — hidden on desktop */
+.inv-card-list {
+  display: none;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.inv-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.gain-positive { color: var(--success); font-weight: 600; }
+.gain-negative { color: var(--danger); font-weight: 600; }
+
+.ticker-badge {
+  background: var(--primary-light, #d6e8f7);
+  color: var(--primary);
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.25rem;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+.icon-btn:hover { background: var(--bg); }
+
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.spinning {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Modal */
+.inv-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.inv-modal {
+  background: var(--card, #f7f4f2);
+  border-radius: 20px;
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.inv-modal h3 {
+  font-size: 1.125rem;
+}
+
+/* Responsive: on mobile hide table, show cards */
+@media (max-width: 768px) {
+  .inv-table {
+    display: none;
+  }
+  .inv-card-list {
+    display: flex;
+  }
+  .portfolio-value {
+    font-size: 2rem;
+  }
+}
+
+/* Growth Projection Chart */
+.chart-card {
+  background: var(--card, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 12px;
+  padding: 1.25rem 1rem 0.75rem;
+  margin-bottom: 1.25rem;
+  overflow: hidden;
+  min-width: 0;
+  width: 100%;
+}
+
+.chart-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text, #111);
+  margin-bottom: 0.75rem;
+}

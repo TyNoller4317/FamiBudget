@@ -45,7 +45,7 @@ body {
   margin: 0 auto;
   overflow-x: hidden;
   padding: 1.5rem 1rem;
-  padding-bottom: 80px;
+  padding-bottom: calc(80px + env(safe-area-inset-bottom));
 }
 
 .card {

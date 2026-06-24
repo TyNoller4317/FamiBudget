@@ -38,9 +38,11 @@
   background: var(--card, #f7f4f2);
   border-radius: 24px 24px 0 0;
   padding: 1.5rem;
+  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
   width: 100%;
-  max-height: 90vh;
+  max-height: 85vh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .sheet-handle {

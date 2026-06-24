@@ -106,6 +106,7 @@ export default function QuickAdd({ onSave, prefill = null }) {
         <div className="sheet-overlay" onClick={e => e.target === e.currentTarget && handleClose()}>
           <div className="sheet">
             <div className="sheet-handle" />
+            <div className="sheet-scroll">
 
             <div className="sheet-header">
               <span className="sheet-title">{prefill?.id ? 'Edit Transaction' : 'Add Transaction'}</span>
@@ -210,14 +211,18 @@ export default function QuickAdd({ onSave, prefill = null }) {
               </div>
             </div>
 
-            <button
-              className="btn-primary"
-              style={{ width: '100%', marginTop: '0.75rem' }}
-              onClick={handleSave}
-              disabled={saving || !canSave}
-            >
-              {saving ? 'Saving…' : 'Save'}
-            </button>
+            </div>{/* end sheet-scroll */}
+
+            <div className="sheet-footer">
+              <button
+                className="btn-primary"
+                style={{ width: '100%' }}
+                onClick={handleSave}
+                disabled={saving || !canSave}
+              >
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
           </div>
         </div>
       )}

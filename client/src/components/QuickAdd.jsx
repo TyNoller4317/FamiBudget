@@ -211,18 +211,15 @@ export default function QuickAdd({ onSave, prefill = null }) {
               </div>
             </div>
 
-            </div>{/* end sheet-scroll */}
-
-            <div className="sheet-footer">
               <button
                 className="btn-primary"
-                style={{ width: '100%' }}
+                style={{ width: '100%', marginTop: '1rem', marginBottom: '2rem' }}
                 onClick={handleSave}
                 disabled={saving || !canSave}
               >
                 {saving ? 'Saving…' : 'Save'}
               </button>
-            </div>
+            </div>{/* end sheet-scroll */}
           </div>
         </div>
       )}

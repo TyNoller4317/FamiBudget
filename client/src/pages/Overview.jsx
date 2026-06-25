@@ -196,7 +196,20 @@ export default function Overview() {
       });
     }
 
-    // 4. No budget set for top spending category
+    // 4. Over budget on any category
+    const overBudget = (summary?.spendingByCategory || []).filter(c => budgetMap[c.category] && c.total > budgetMap[c.category]);
+    overBudget.forEach(c => {
+      const over = c.total - budgetMap[c.category];
+      recs.push({
+        icon: '🚫',
+        title: `Over Budget: ${c.category}`,
+        body: `You've spent ${fmt(c.total)} on ${c.category} this month — ${fmt(over)} over your ${fmt(budgetMap[c.category])} limit.`,
+        color: 'var(--danger)',
+        bg: 'var(--danger-light, #fde)',
+      });
+    });
+
+    // 5. No budget set for top spending category
     const topCategory = (summary?.spendingByCategory || []).find(c => !budgetMap[c.category]);
     if (topCategory) {
       recs.push({

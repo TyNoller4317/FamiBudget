@@ -8,6 +8,9 @@ const GoalSchema = new mongoose.Schema({
   goalType: { type: String, enum: ['savings', 'debt'], default: 'savings' },
   deadline: { type: Date },
   notes: { type: String, trim: true },
+  linkedLiabilityId: { type: String, default: null },
+  lastPaymentAmount: { type: Number, default: null },
+  lastPaymentDate: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now },
 });
 

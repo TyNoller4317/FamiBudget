@@ -162,7 +162,6 @@ export default function QuickAdd({ onSave, prefill = null }) {
               />
             </div>
 
-            {/* Recurring toggle */}
             <div className="recurring-toggle-row">
               <label className="recurring-toggle-label">
                 <input
@@ -186,7 +185,6 @@ export default function QuickAdd({ onSave, prefill = null }) {
               )}
             </div>
 
-            {/* Owner picker */}
             <div className="owner-picker">
               <div className="owner-picker-label">Who is this for?</div>
               <div className="owner-picker-row">
@@ -210,14 +208,14 @@ export default function QuickAdd({ onSave, prefill = null }) {
               </div>
             </div>
 
-              <button
-                className="btn-primary"
-                style={{ width: '100%', marginTop: '1rem', marginBottom: '2rem' }}
-                onClick={handleSave}
-                disabled={saving || !canSave}
-              >
-                {saving ? 'Saving…' : 'Save'}
-              </button>
+            <button
+              className="btn-primary"
+              style={{ width: '100%', marginTop: '1rem' }}
+              onClick={handleSave}
+              disabled={saving || !canSave}
+            >
+              {saving ? 'Saving…' : 'Save'}
+            </button>
           </div>
         </div>
       )}

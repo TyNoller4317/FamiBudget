@@ -39,7 +39,7 @@ router.put('/:id', async (req, res) => {
   try {
     const goal = await Goal.findOne({ _id: req.params.id, householdId: req.user.householdId });
     if (!goal) return res.status(404).json({ message: 'Goal not found' });
-    const fields = ['name', 'targetAmount', 'currentAmount', 'goalType', 'deadline', 'notes'];
+    const fields = ['name', 'targetAmount', 'currentAmount', 'goalType', 'deadline', 'notes', 'lastPaymentAmount', 'lastPaymentDate'];
     fields.forEach((f) => { if (req.body[f] !== undefined) goal[f] = req.body[f]; });
     await goal.save();
     res.json(goal);

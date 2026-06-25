@@ -77,21 +77,28 @@ export default function Overview() {
   const [history, setHistory] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [investments, setInvestments] = useState([]);
+  const [allTransactions, setAllTransactions] = useState([]);
+  const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [recsCollapsed, setRecsCollapsed] = useState(false);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [sumRes, histRes, txRes, invRes] = await Promise.all([
+      const [sumRes, histRes, txRes, invRes, allTxRes, goalsRes] = await Promise.all([
         api.get(`/summary?month=${month}`),
         api.get('/history'),
         api.get(`/transactions?month=${month}&limit=5`),
         api.get('/investments'),
+        api.get('/transactions?limit=200'),
+        api.get('/goals'),
       ]);
       setSummary(sumRes.data);
       setHistory(histRes.data || []);
       setTransactions((txRes.data.transactions || txRes.data || []).slice(0, 5));
       setInvestments(invRes.data || []);
+      setAllTransactions(allTxRes.data.transactions || allTxRes.data || []);
+      setGoals(goalsRes.data || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -129,8 +136,117 @@ export default function Overview() {
   })();
   const hasInvestments = investments.length > 0;
 
+  // ── Smart Recommendations ────────────────────────────────────────────────────
+  const recommendations = (() => {
+    const recs = [];
+
+    // Monthly recurring expenses total
+    const recurringExpenses = allTransactions
+      .filter(t => t.isRecurring && t.type === 'expense')
+      .reduce((s, t) => {
+        let monthly = t.amount;
+        if (t.recurringInterval === 'weekly') monthly = t.amount * 4.33;
+        if (t.recurringInterval === 'biweekly') monthly = t.amount * 2.17;
+        if (t.recurringInterval === 'yearly') monthly = t.amount / 12;
+        return s + monthly;
+      }, 0);
+
+    // 1. Emergency fund check
+    const savingsTotal = investments
+      .filter(i => i.accountType === 'savings')
+      .reduce((s, i) => s + (i.manualValue || 0), 0);
+    const hasEmergencyGoal = goals.some(g => g.name.toLowerCase().includes('emergency'));
+
+    if (recurringExpenses > 0 && !hasEmergencyGoal) {
+      const target3x = recurringExpenses * 3;
+      const target5x = recurringExpenses * 5;
+      if (savingsTotal < target3x) {
+        recs.push({
+          icon: '🚨',
+          title: 'Build an Emergency Fund',
+          body: `Your recurring bills total ${fmt(recurringExpenses)}/mo. You should have ${fmt(target3x)}–${fmt(target5x)} saved (3–5 months). You currently have ${fmt(savingsTotal)} in savings.`,
+          color: 'var(--danger)',
+          bg: 'var(--danger-light)',
+        });
+      }
+    }
+
+    // 2. Spending > 90% of income
+    const income = summary?.totalIncome || 0;
+    const expenses = summary?.totalExpenses || 0;
+    if (income > 0 && expenses / income > 0.9) {
+      recs.push({
+        icon: '⚠️',
+        title: 'High Spending Alert',
+        body: `You're spending ${Math.round((expenses / income) * 100)}% of your income this month. Try to keep spending under 90% to build savings.`,
+        color: '#b45309',
+        bg: '#fef3c7',
+      });
+    }
+
+    // 3. No retirement account
+    const hasRetirement = investments.some(i => i.accountType === 'retirement');
+    if (!hasRetirement) {
+      recs.push({
+        icon: '📈',
+        title: 'Start a Retirement Account',
+        body: 'You have no retirement accounts tracked. Consider opening a 401(k) or IRA and adding it to your Wealth page to track your long-term growth.',
+        color: 'var(--primary)',
+        bg: 'var(--success-light)',
+      });
+    }
+
+    // 4. No budget set for top spending category
+    const topCategory = (summary?.spendingByCategory || []).find(c => !budgetMap[c.category]);
+    if (topCategory) {
+      recs.push({
+        icon: '💡',
+        title: `Set a Budget for ${topCategory.category}`,
+        body: `You spent ${fmt(topCategory.total)} on ${topCategory.category} this month but have no budget set. Head to Activity → Budget to set a limit.`,
+        color: 'var(--primary)',
+        bg: '#e8f4fd',
+      });
+    }
+
+    return recs;
+  })();
+
   return (
     <div className="page-content">
+      {/* Smart Recommendations — collapsible, at top */}
+      {recommendations.length > 0 && (
+        <div style={{ marginBottom: '1rem' }}>
+          <div
+            onClick={() => setRecsCollapsed(p => !p)}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', marginBottom: recsCollapsed ? 0 : '0.75rem' }}
+          >
+            <div className="section-title" style={{ margin: 0 }}>
+              Recommendations <span style={{ fontSize: '0.75rem', color: 'var(--danger)', fontWeight: 700, background: 'var(--danger-light,#fde)', borderRadius: '99px', padding: '2px 8px', marginLeft: '0.4rem' }}>{recommendations.length}</span>
+            </div>
+            <span style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>{recsCollapsed ? '▼' : '▲'}</span>
+          </div>
+          {!recsCollapsed && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {recommendations.map((rec, i) => (
+                <div key={i} style={{
+                  background: rec.bg,
+                  border: `1px solid ${rec.color}33`,
+                  borderLeft: `4px solid ${rec.color}`,
+                  borderRadius: 'var(--radius-lg)',
+                  padding: '1rem 1.25rem',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                    <span style={{ fontSize: '1.1rem' }}>{rec.icon}</span>
+                    <span style={{ fontWeight: 700, fontSize: '0.9rem', color: rec.color }}>{rec.title}</span>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text)', lineHeight: 1.5 }}>{rec.body}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Month selector */}
       <div className="month-nav">
         <button onClick={() => setMonth(prevMonth(month))}>‹</button>

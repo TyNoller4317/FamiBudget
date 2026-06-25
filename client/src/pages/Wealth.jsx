@@ -91,6 +91,9 @@ function InvestmentsTab() {
   const [form, setForm] = useState(getEmptyForm('stock'));
   const [saving, setSaving] = useState(false);
   const [showProjectionChart, setShowProjectionChart] = useState(true);
+  const [collapsed, setCollapsed] = useState({ stocks: false, retirement: false, savings: false, liabilities: false });
+
+  const toggleSection = (key) => setCollapsed(p => ({ ...p, [key]: !p[key] }));
 
   useEffect(() => {
     api.get('/auth/me').then(res => setMembers(res.data.members || [])).catch(() => {});
@@ -265,13 +268,15 @@ function InvestmentsTab() {
 
       {/* Stocks & ETFs */}
       <div className="section-header">
-        <h2>Stocks &amp; ETFs</h2>
+        <h2 onClick={() => stocks.length > 0 && toggleSection('stocks')} style={{ cursor: stocks.length > 0 ? 'pointer' : 'default' }}>
+          Stocks &amp; ETFs {stocks.length > 0 && <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{collapsed.stocks ? '▼' : '▲'}</span>}
+        </h2>
         <button className="btn-primary btn-sm" onClick={() => openAdd('stock')}>+ Stock</button>
       </div>
 
       {stocks.length === 0 ? (
         <div className="card empty-state">No stocks added yet.</div>
-      ) : (
+      ) : collapsed.stocks ? null : (
         <>
           <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
             <table className="inv-table">
@@ -360,12 +365,14 @@ function InvestmentsTab() {
 
       {/* Retirement Accounts */}
       <div className="section-header">
-        <h2>Retirement Accounts</h2>
+        <h2 onClick={() => retirements.length > 0 && toggleSection('retirement')} style={{ cursor: retirements.length > 0 ? 'pointer' : 'default' }}>
+          Retirement Accounts {retirements.length > 0 && <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{collapsed.retirement ? '▼' : '▲'}</span>}
+        </h2>
         <button className="btn-primary btn-sm" onClick={() => openAdd('retirement')}>+ Retirement</button>
       </div>
       {retirements.length === 0 ? (
         <div className="card empty-state">No retirement accounts added.</div>
-      ) : (
+      ) : collapsed.retirement ? null : (
         <div className="inv-card-list">
           {retirements.map(r => (
             <div key={r._id || r.id} className="card inv-card">
@@ -388,12 +395,14 @@ function InvestmentsTab() {
 
       {/* Savings Accounts */}
       <div className="section-header">
-        <h2>Savings Accounts</h2>
+        <h2 onClick={() => savings.length > 0 && toggleSection('savings')} style={{ cursor: savings.length > 0 ? 'pointer' : 'default' }}>
+          Savings Accounts {savings.length > 0 && <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{collapsed.savings ? '▼' : '▲'}</span>}
+        </h2>
         <button className="btn-primary btn-sm" onClick={() => openAdd('savings')}>+ Savings</button>
       </div>
       {savings.length === 0 ? (
         <div className="card empty-state">No savings accounts added.</div>
-      ) : (
+      ) : collapsed.savings ? null : (
         <div className="inv-card-list">
           {savings.map(s => {
             const monthly = (s.manualValue || 0) * (s.interestRate || 0) / 100 / 12;
@@ -462,12 +471,14 @@ function InvestmentsTab() {
 
       {/* Liabilities */}
       <div className="section-header">
-        <h2>Liabilities</h2>
+        <h2 onClick={() => liabilities.length > 0 && toggleSection('liabilities')} style={{ cursor: liabilities.length > 0 ? 'pointer' : 'default' }}>
+          Liabilities {liabilities.length > 0 && <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{collapsed.liabilities ? '▼' : '▲'}</span>}
+        </h2>
         <button className="btn-primary btn-sm" onClick={() => openAdd('liability')}>+ Liability</button>
       </div>
       {liabilities.length === 0 ? (
         <div className="card empty-state">No liabilities tracked.</div>
-      ) : (
+      ) : collapsed.liabilities ? null : (
         <div className="inv-card-list">
           {liabilities.map(l => {
             const monthlyInterest = (l.manualValue || 0) * (l.interestRate || 0) / 100 / 12;
@@ -628,6 +639,8 @@ function InvestmentsTab() {
 // ── Goals Tab ─────────────────────────────────────────────────────────────────
 function GoalsTab() {
   const [goals, setGoals] = useState([]);
+  const [collapsed, setCollapsed] = useState({ savings: false, debt: false });
+  const [payments, setPayments] = useState([]); // recent transactions for payoff calc
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editGoal, setEditGoal] = useState(null);
@@ -639,8 +652,12 @@ function GoalsTab() {
   const fetchGoals = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/goals');
-      setGoals(res.data.map(g => ({ ...g, goalType: g.goalType || 'savings' })));
+      const [goalsRes, txRes] = await Promise.all([
+        api.get('/goals'),
+        api.get('/transactions?limit=100'),
+      ]);
+      setGoals(goalsRes.data.map(g => ({ ...g, goalType: g.goalType || 'savings' })));
+      setPayments(txRes.data.transactions || txRes.data || []);
     } finally {
       setLoading(false);
     }
@@ -690,8 +707,33 @@ function GoalsTab() {
     } else {
       newAmount = (g.currentAmount || 0) + amount;
     }
-    await api.put(`/goals/${g._id}`, { currentAmount: newAmount });
+    await api.put(`/goals/${g._id}`, {
+      currentAmount: newAmount,
+      lastPaymentAmount: amount,
+      lastPaymentDate: new Date().toISOString(),
+    });
+    // Sync the linked liability balance on the investments page
+    if (g.goalType === 'debt' && g.linkedLiabilityId) {
+      try {
+        const invRes = await api.get(`/investments/${g.linkedLiabilityId}`);
+        const currentBalance = invRes.data.manualValue || 0;
+        await api.put(`/investments/${g.linkedLiabilityId}`, {
+          manualValue: Math.max(0, currentBalance - amount),
+        });
+      } catch (e) {
+        console.error('Could not sync liability balance', e);
+      }
+    }
     setContributeGoal(null); setContributeAmount(''); fetchGoals();
+  };
+
+  const getPayoffEstimate = (g) => {
+    if (g.goalType !== 'debt') return null;
+    if (!g.lastPaymentAmount || g.lastPaymentAmount <= 0) return null;
+    const remaining = g.currentAmount;
+    if (remaining <= 0) return null;
+    const months = Math.ceil(remaining / g.lastPaymentAmount);
+    return months;
   };
 
   return (
@@ -784,81 +826,94 @@ function GoalsTab() {
           No goals yet. Create your first shared goal!
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
-          {goals.map(g => {
-            const isDebt = g.goalType === 'debt';
-            const pct = isDebt
-              ? (g.targetAmount > 0 ? Math.min(100, ((g.targetAmount - g.currentAmount) / g.targetAmount) * 100) : 0)
-              : (g.targetAmount > 0 ? Math.min(100, (g.currentAmount / g.targetAmount) * 100) : 0);
-            const ringColor = pct >= 100 ? 'var(--success)' : (isDebt ? 'var(--danger)' : 'var(--primary)');
+        <>
+          {['savings', 'debt'].map(type => {
+            const filtered = goals.filter(g => g.goalType === type);
+            if (filtered.length === 0) return null;
+            const label = type === 'savings' ? 'Savings Goals' : 'Debt Payoff';
+            const isCollapsed = collapsed[type];
             return (
-              <div key={g._id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <span style={{ fontWeight: 600, fontSize: '1rem' }}>{g.name}</span>
-                    {isDebt && (
-                      <span style={{
-                        fontSize: '0.65rem',
-                        fontWeight: 700,
-                        color: 'var(--danger)',
-                        border: '1px solid var(--danger)',
-                        borderRadius: '4px',
-                        padding: '0 4px',
-                        lineHeight: '1.4',
-                      }}>DEBT</span>
-                    )}
+              <div key={type} style={{ marginBottom: '1.5rem' }}>
+                <h3
+                  onClick={() => setCollapsed(p => ({ ...p, [type]: !p[type] }))}
+                  style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                >
+                  <span>{label} <span style={{ fontSize: '0.8rem', color: 'var(--muted)', fontWeight: 400 }}>({filtered.length})</span></span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{isCollapsed ? '▼' : '▲'}</span>
+                </h3>
+                {!isCollapsed && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
+                    {filtered.map(g => {
+                      const isDebt = g.goalType === 'debt';
+                      const pct = isDebt
+                        ? (g.targetAmount > 0 ? Math.min(100, ((g.targetAmount - g.currentAmount) / g.targetAmount) * 100) : 0)
+                        : (g.targetAmount > 0 ? Math.min(100, (g.currentAmount / g.targetAmount) * 100) : 0);
+                      const ringColor = pct >= 100 ? 'var(--success)' : (isDebt ? 'var(--danger)' : 'var(--primary)');
+                      return (
+                        <div key={g._id} className="card" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                            <span style={{ fontWeight: 600, fontSize: '1rem' }}>{g.name}</span>
+                            <div style={{ display: 'flex', gap: '0.25rem' }}>
+                              <button onClick={() => handleEdit(g)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: 'var(--muted)' }} title="Edit">✏️</button>
+                              <button className="btn-danger" onClick={() => handleDelete(g._id)} style={{ padding: '0.2rem 0.4rem', fontSize: '0.75rem' }} title="Delete">🗑</button>
+                            </div>
+                          </div>
+                          <ProgressRing pct={pct} color={ringColor} />
+                          <div style={{ textAlign: 'center', fontSize: '0.875rem', color: 'var(--muted)' }}>
+                            {isDebt ? <>Remaining: {fmt(g.currentAmount)} / {fmt(g.targetAmount)}</> : <>Saved: {fmt(g.currentAmount)} / {fmt(g.targetAmount)}</>}
+                          </div>
+                          {g.deadline && (
+                            <div style={{ fontSize: '0.75rem', color: 'var(--muted)', textAlign: 'center' }}>
+                              Deadline: {new Date(g.deadline).toLocaleDateString()}
+                            </div>
+                          )}
+                          {isDebt && (() => {
+                            const months = getPayoffEstimate(g);
+                            if (!months) return (
+                              <div style={{ fontSize: '0.75rem', color: 'var(--muted)', textAlign: 'center', fontStyle: 'italic' }}>
+                                Make a payment to see your payoff timeline
+                              </div>
+                            );
+                            const yr = Math.floor(months / 12);
+                            const mo = months % 12;
+                            const label = yr > 0 ? `${yr}y ${mo}m` : `${mo} month${mo !== 1 ? 's' : ''}`;
+                            return (
+                              <div style={{ background: 'var(--danger-light)', borderRadius: 8, padding: '0.4rem 0.75rem', textAlign: 'center' }}>
+                                <div style={{ fontSize: '0.7rem', color: 'var(--danger)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Payoff Estimate</div>
+                                <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--danger)' }}>{label}</div>
+                                <div style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>at {fmt(g.lastPaymentAmount)}/payment</div>
+                              </div>
+                            );
+                          })()}
+                          {g.notes && !g.notes.startsWith('Auto-created') && (
+                            <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>{g.notes}</div>
+                          )}
+                          {contributeGoal?._id === g._id ? (
+                            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.25rem' }}>
+                              <input
+                                type="number" step="0.01" placeholder="Amount"
+                                value={contributeAmount} onChange={e => setContributeAmount(e.target.value)}
+                                style={{ flex: 1 }}
+                              />
+                              <button className="btn-primary" style={{ padding: '0.5rem 0.75rem', fontSize: '0.875rem', whiteSpace: 'nowrap' }} onClick={() => handleContribute(g)}>
+                                {isDebt ? 'Pay' : 'Add'}
+                              </button>
+                              <button className="btn-ghost" style={{ padding: '0.5rem 0.75rem', fontSize: '0.875rem' }} onClick={() => setContributeGoal(null)}>Cancel</button>
+                            </div>
+                          ) : (
+                            <button className="btn-ghost" style={{ marginTop: '0.25rem' }} onClick={() => { setContributeGoal(g); setContributeAmount(''); }}>
+                              {isDebt ? 'Make Payment 💳' : '+ Contribute'}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div style={{ display: 'flex', gap: '0.25rem' }}>
-                    <button
-                      onClick={() => handleEdit(g)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: 'var(--muted)' }}
-                      title="Edit"
-                    >✏️</button>
-                    <button
-                      className="btn-danger"
-                      onClick={() => handleDelete(g._id)}
-                      style={{ padding: '0.2rem 0.4rem', fontSize: '0.75rem' }}
-                      title="Delete"
-                    >🗑</button>
-                  </div>
-                </div>
-                <ProgressRing pct={pct} color={ringColor} />
-                <div style={{ textAlign: 'center', fontSize: '0.875rem', color: 'var(--muted)' }}>
-                  {isDebt ? (
-                    <>Remaining: {fmt(g.currentAmount)} / {fmt(g.targetAmount)}</>
-                  ) : (
-                    <>Saved: {fmt(g.currentAmount)} / {fmt(g.targetAmount)}</>
-                  )}
-                </div>
-                {g.deadline && (
-                  <div style={{ fontSize: '0.75rem', color: 'var(--muted)', textAlign: 'center' }}>
-                    Deadline: {new Date(g.deadline).toLocaleDateString()}
-                  </div>
-                )}
-                {g.notes && (
-                  <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>{g.notes}</div>
-                )}
-                {contributeGoal?._id === g._id ? (
-                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.25rem' }}>
-                    <input
-                      type="number" step="0.01" placeholder="Amount"
-                      value={contributeAmount} onChange={e => setContributeAmount(e.target.value)}
-                      style={{ flex: 1 }}
-                    />
-                    <button className="btn-primary" style={{ padding: '0.5rem 0.75rem', fontSize: '0.875rem', whiteSpace: 'nowrap' }} onClick={() => handleContribute(g)}>
-                      {isDebt ? 'Pay' : 'Add'}
-                    </button>
-                    <button className="btn-ghost" style={{ padding: '0.5rem 0.75rem', fontSize: '0.875rem' }} onClick={() => setContributeGoal(null)}>Cancel</button>
-                  </div>
-                ) : (
-                  <button className="btn-ghost" style={{ marginTop: '0.25rem' }} onClick={() => { setContributeGoal(g); setContributeAmount(''); }}>
-                    {isDebt ? 'Make Payment 💳' : '+ Contribute'}
-                  </button>
                 )}
               </div>
             );
           })}
-        </div>
+        </>
       )}
     </>
   );

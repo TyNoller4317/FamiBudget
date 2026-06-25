@@ -11,6 +11,7 @@ const TransactionSchema = new mongoose.Schema({
   isRecurring: { type: Boolean, default: false },
   recurringInterval: { type: String, enum: ['weekly', 'biweekly', 'monthly', 'yearly'], default: undefined },
   ownedBy: { type: String, default: 'joint' },
+  lastGenerated: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now },
 });
 

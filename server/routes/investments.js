@@ -3,6 +3,7 @@ const router = express.Router();
 const https = require('https');
 const auth = require('../middleware/auth');
 const Investment = require('../models/Investment');
+const Goal = require('../models/Goal');
 
 function fetchPrice(ticker) {
   return new Promise((resolve, reject) => {
@@ -49,6 +50,23 @@ router.post('/', auth, async (req, res) => {
       ownedBy: ownedBy || req.user.id,
     });
     await investment.save();
+
+    // Auto-create a debt payoff goal when a liability is added
+    if (accountType === 'liability') {
+      const existingGoal = await Goal.findOne({ linkedLiabilityId: String(investment._id) });
+      if (!existingGoal) {
+        await Goal.create({
+          householdId: req.user.householdId,
+          name: `Pay off ${name}`,
+          targetAmount: parseFloat(manualValue) || 0,
+          currentAmount: parseFloat(manualValue) || 0,
+          goalType: 'debt',
+          linkedLiabilityId: String(investment._id),
+          notes: `Auto-created from liability: ${name}`,
+        });
+      }
+    }
+
     res.status(201).json(investment);
   } catch (err) {
     res.status(400).json({ message: 'Validation error', error: err.message });
@@ -56,6 +74,16 @@ router.post('/', auth, async (req, res) => {
 });
 
 // PUT /:id — update investment
+router.get('/:id', auth, async (req, res) => {
+  try {
+    const investment = await Investment.findOne({ _id: req.params.id, householdId: req.user.householdId });
+    if (!investment) return res.status(404).json({ message: 'Investment not found' });
+    res.json(investment);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
+
 router.put('/:id', auth, async (req, res) => {
   try {
     const investment = await Investment.findOneAndUpdate(

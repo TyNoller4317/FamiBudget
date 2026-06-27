@@ -8,11 +8,15 @@ router.use(auth);
 // GET /api/transactions
 router.get('/', async (req, res) => {
   try {
-    const { type, category, startDate, endDate } = req.query;
+    const { type, category, startDate, endDate, month, scope, limit } = req.query;
     const filter = { householdId: req.user.householdId };
+    if (scope === 'user') filter.createdBy = require('mongoose').Types.ObjectId.createFromHexString(req.user.id);
     if (type) filter.type = type;
     if (category) filter.category = category;
-    if (startDate || endDate) {
+    if (month) {
+      const [y, m] = month.split('-').map(Number);
+      filter.date = { $gte: new Date(y, m - 1, 1), $lte: new Date(y, m, 0, 23, 59, 59, 999) };
+    } else if (startDate || endDate) {
       filter.date = {};
       if (startDate) filter.date.$gte = new Date(startDate);
       if (endDate) {
@@ -21,7 +25,9 @@ router.get('/', async (req, res) => {
         filter.date.$lte = end;
       }
     }
-    const transactions = await Transaction.find(filter).sort({ date: -1, createdAt: -1 }).populate('createdBy', 'name');
+    let query = Transaction.find(filter).sort({ date: -1, createdAt: -1 }).populate('createdBy', 'name');
+    if (limit) query = query.limit(parseInt(limit));
+    const transactions = await query;
     res.json(transactions.map((t) => ({
       ...t.toObject(),
       createdByName: t.createdBy?.name || 'Unknown',

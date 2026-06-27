@@ -78,8 +78,14 @@
   border-bottom: none;
 }
 
-/* Mobile card list — hidden on desktop */
+/* Card list — always visible; stock card list hidden on desktop (table shown instead) */
 .inv-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.inv-stock-card-list {
   display: none;
   flex-direction: column;
   gap: 0.5rem;
@@ -159,12 +165,12 @@
   font-size: 1.125rem;
 }
 
-/* Responsive: on mobile hide table, show cards */
+/* Responsive: on mobile hide table, show stock cards */
 @media (max-width: 768px) {
   .inv-table {
     display: none;
   }
-  .inv-card-list {
+  .inv-stock-card-list {
     display: flex;
   }
   .portfolio-value {

@@ -72,8 +72,8 @@ export default function Dashboard() {
     setLoading(true);
     try {
       const [sumRes, txRes, goalsRes] = await Promise.all([
-        api.get(`/summary?month=${month}`),
-        api.get(`/transactions?month=${month}&limit=5`),
+        api.get(`/summary?month=${month}&scope=user`),
+        api.get(`/transactions?month=${month}&limit=5&scope=user`),
         api.get('/goals'),
       ]);
       setSummary(sumRes.data);

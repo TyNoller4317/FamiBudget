@@ -326,7 +326,7 @@ function InvestmentsTab() {
               </tbody>
             </table>
           </div>
-          <div className="inv-card-list">
+          <div className="inv-stock-card-list">
             {stocks.map(s => {
               const hasPrice = !!s.currentPrice;
               const val = hasPrice ? s.shares * s.currentPrice : null;

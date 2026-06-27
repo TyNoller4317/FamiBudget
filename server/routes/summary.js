@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { Types: { ObjectId } } = require('mongoose');
 const auth = require('../middleware/auth');
 const Transaction = require('../models/Transaction');
 const Goal = require('../models/Goal');
@@ -22,23 +23,27 @@ function monthToDateRange(month) {
 // GET /api/summary
 router.get('/summary', auth, async (req, res) => {
   try {
-    const { householdId } = req.user;
+    const { householdId, id: userId } = req.user;
     const month = req.query.month || currentMonth();
     const { startDate, endDate } = monthToDateRange(month);
+    const scope = req.query.scope; // 'user' = only my transactions, omit = household
 
     const dateFilter = { date: { $gte: startDate, $lte: endDate } };
+    const baseMatch = scope === 'user'
+      ? { householdId, createdBy: new ObjectId(userId) }
+      : { householdId };
 
     const [incomeAgg, expenseAgg, categoryAgg, goals, budgets] = await Promise.all([
       Transaction.aggregate([
-        { $match: { householdId, type: 'income', ...dateFilter } },
+        { $match: { ...baseMatch, type: 'income', ...dateFilter } },
         { $group: { _id: null, total: { $sum: '$amount' } } },
       ]),
       Transaction.aggregate([
-        { $match: { householdId, type: 'expense', ...dateFilter } },
+        { $match: { ...baseMatch, type: 'expense', ...dateFilter } },
         { $group: { _id: null, total: { $sum: '$amount' } } },
       ]),
       Transaction.aggregate([
-        { $match: { householdId, type: 'expense', ...dateFilter } },
+        { $match: { ...baseMatch, type: 'expense', ...dateFilter } },
         { $group: { _id: '$category', total: { $sum: '$amount' } } },
         { $sort: { total: -1 } },
       ]),

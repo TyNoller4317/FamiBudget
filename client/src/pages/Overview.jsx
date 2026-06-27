@@ -86,11 +86,11 @@ export default function Overview() {
     setLoading(true);
     try {
       const [sumRes, histRes, txRes, invRes, allTxRes, goalsRes] = await Promise.all([
-        api.get(`/summary?month=${month}`),
+        api.get(`/summary?month=${month}&scope=user`),
         api.get('/history'),
-        api.get(`/transactions?month=${month}&limit=5`),
+        api.get(`/transactions?month=${month}&limit=5&scope=user`),
         api.get('/investments'),
-        api.get('/transactions?limit=200'),
+        api.get('/transactions?limit=200&scope=user'),
         api.get('/goals'),
       ]);
       setSummary(sumRes.data);

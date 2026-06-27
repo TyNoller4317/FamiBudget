@@ -5,6 +5,7 @@ import {
 } from 'recharts';
 import api from '../api/axios';
 import QuickAdd from '../components/QuickAdd';
+import { useAuth } from '../context/AuthContext';
 
 const AVATAR_COLORS = ['#042F34', '#1a9e6e', '#5a7a80', '#FFC933', '#16232B'];
 const CHART_COLORS = ['#1a9e6e', '#FFC933', '#042F34', '#B5F2DB', '#5a7a80', '#2ec4b6', '#16232B', '#a8dadc'];
@@ -72,6 +73,7 @@ function ProgressRing({ pct, size = 64, stroke = 6 }) {
 }
 
 export default function Overview() {
+  const { user } = useAuth();
   const [month, setMonth] = useState(currentMonthStr);
   const [summary, setSummary] = useState(null);
   const [history, setHistory] = useState([]);
@@ -120,10 +122,11 @@ export default function Overview() {
     .filter(c => budgetMap[c.category] != null)
     .sort((a, b) => a.category.localeCompare(b.category));
 
-  // Real net worth = investment assets - liabilities
+  // Personal net worth = only investments owned by the logged-in user
+  const myInvestments = investments.filter(inv => inv.ownedBy === user?.id);
   const invNetWorth = (() => {
     let total = 0;
-    investments.forEach(inv => {
+    myInvestments.forEach(inv => {
       if (inv.accountType === 'stock') {
         total += inv.shares * (inv.currentPrice || inv.costBasis || 0);
       } else if (inv.accountType === 'liability') {
@@ -134,7 +137,7 @@ export default function Overview() {
     });
     return total;
   })();
-  const hasInvestments = investments.length > 0;
+  const hasInvestments = myInvestments.length > 0;
 
   // ── Smart Recommendations ────────────────────────────────────────────────────
   const recommendations = (() => {

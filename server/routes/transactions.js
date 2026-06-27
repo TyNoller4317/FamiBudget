@@ -10,7 +10,7 @@ router.get('/', async (req, res) => {
   try {
     const { type, category, startDate, endDate, month, scope, limit } = req.query;
     const filter = { householdId: req.user.householdId };
-    if (scope === 'user') filter.createdBy = require('mongoose').Types.ObjectId.createFromHexString(req.user.id);
+    if (scope === 'user') filter.createdBy = new (require('mongoose').Types.ObjectId)(req.user.id);
     if (type) filter.type = type;
     if (category) filter.category = category;
     if (month) {

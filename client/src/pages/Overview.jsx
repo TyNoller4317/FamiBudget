@@ -76,6 +76,7 @@ export default function Overview() {
   const { user } = useAuth();
   const [month, setMonth] = useState(currentMonthStr);
   const [summary, setSummary] = useState(null);
+  const [householdSummary, setHouseholdSummary] = useState(null);
   const [history, setHistory] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [investments, setInvestments] = useState([]);
@@ -87,8 +88,9 @@ export default function Overview() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [sumRes, histRes, txRes, invRes, allTxRes, goalsRes] = await Promise.all([
+      const [sumRes, householdSumRes, histRes, txRes, invRes, allTxRes, goalsRes] = await Promise.all([
         api.get(`/summary?month=${month}&scope=user`),
+        api.get(`/summary?month=${month}`),
         api.get('/history'),
         api.get(`/transactions?month=${month}&limit=5&scope=user`),
         api.get('/investments'),
@@ -96,7 +98,9 @@ export default function Overview() {
         api.get('/goals'),
       ]);
       setSummary(sumRes.data);
+      setHouseholdSummary(householdSumRes.data);
       setHistory(histRes.data || []);
+
       setTransactions((txRes.data.transactions || txRes.data || []).slice(0, 5));
       setInvestments(invRes.data || []);
       setAllTransactions(allTxRes.data.transactions || allTxRes.data || []);
@@ -110,8 +114,8 @@ export default function Overview() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  const spendingByCategory = summary?.spendingByCategory || [];
-  const budgets = summary?.budgets || [];
+  const spendingByCategory = householdSummary?.spendingByCategory || [];
+  const budgets = householdSummary?.budgets || [];
 
   // Build budget map from budgets array in summary response
   const budgetMap = {};
@@ -200,7 +204,7 @@ export default function Overview() {
     }
 
     // 4. Over budget on any category
-    const overBudget = (summary?.spendingByCategory || []).filter(c => budgetMap[c.category] && c.total > budgetMap[c.category]);
+    const overBudget = (householdSummary?.spendingByCategory || []).filter(c => budgetMap[c.category] && c.total > budgetMap[c.category]);
     overBudget.forEach(c => {
       const over = c.total - budgetMap[c.category];
       recs.push({
@@ -213,7 +217,7 @@ export default function Overview() {
     });
 
     // 5. No budget set for top spending category
-    const topCategory = (summary?.spendingByCategory || []).find(c => !budgetMap[c.category]);
+    const topCategory = (householdSummary?.spendingByCategory || []).find(c => !budgetMap[c.category]);
     if (topCategory) {
       recs.push({
         icon: '💡',

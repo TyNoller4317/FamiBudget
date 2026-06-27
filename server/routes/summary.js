@@ -33,7 +33,10 @@ router.get('/summary', auth, async (req, res) => {
       ? { householdId, createdBy: new ObjectId(userId) }
       : { householdId };
 
-    const [incomeAgg, expenseAgg, categoryAgg, goals, budgets] = await Promise.all([
+    // All-time match (up through end of current month) for running balance
+    const allTimeMatch = { ...baseMatch, date: { $lte: endDate } };
+
+    const [incomeAgg, expenseAgg, categoryAgg, goals, budgets, allIncomeAgg, allExpenseAgg] = await Promise.all([
       Transaction.aggregate([
         { $match: { ...baseMatch, type: 'income', ...dateFilter } },
         { $group: { _id: null, total: { $sum: '$amount' } } },
@@ -49,11 +52,20 @@ router.get('/summary', auth, async (req, res) => {
       ]),
       Goal.find({ householdId }),
       Budget.find({ householdId, month }),
+      Transaction.aggregate([
+        { $match: { ...allTimeMatch, type: 'income' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } },
+      ]),
+      Transaction.aggregate([
+        { $match: { ...allTimeMatch, type: 'expense' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } },
+      ]),
     ]);
 
     const totalIncome = incomeAgg[0]?.total || 0;
     const totalExpenses = expenseAgg[0]?.total || 0;
     const net = totalIncome - totalExpenses;
+    const runningBalance = (allIncomeAgg[0]?.total || 0) - (allExpenseAgg[0]?.total || 0);
 
     // Build a map of category -> monthlyLimit from budgets
     const budgetMap = {};
@@ -74,7 +86,7 @@ router.get('/summary', auth, async (req, res) => {
       deadline: g.deadline,
     }));
 
-    res.json({ month, totalIncome, totalExpenses, net, spendingByCategory, goalProgress, budgets: budgets.map(b => ({ _id: b._id, category: b.category, monthlyLimit: b.monthlyLimit, month: b.month })) });
+    res.json({ month, totalIncome, totalExpenses, net, runningBalance, spendingByCategory, goalProgress, budgets: budgets.map(b => ({ _id: b._id, category: b.category, monthlyLimit: b.monthlyLimit, month: b.month })) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });

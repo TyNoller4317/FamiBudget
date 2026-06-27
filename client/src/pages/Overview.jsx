@@ -277,9 +277,11 @@ export default function Overview() {
       {/* Summary cards */}
       <div className="summary-cards">
         <div className="summary-card net">
-          <div className="card-label">{hasInvestments ? 'Net Worth' : 'Net Balance'}</div>
-          <div className="card-value">{fmt(hasInvestments ? invNetWorth : (summary?.totalIncome || 0) - (summary?.totalExpenses || 0))}</div>
-          {hasInvestments && <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '0.25rem' }}>Assets − Liabilities</div>}
+          <div className="card-label">{hasInvestments ? 'Net Worth' : 'Balance'}</div>
+          <div className="card-value">{fmt(hasInvestments ? invNetWorth : (summary?.runningBalance ?? 0))}</div>
+          <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: '0.25rem' }}>
+            {hasInvestments ? 'Assets − Liabilities' : 'All-time running total'}
+          </div>
         </div>
         <div className="summary-card income">
           <div className="card-label">Income</div>

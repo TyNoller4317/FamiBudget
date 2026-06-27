@@ -78,6 +78,8 @@ export default function Overview() {
   const [summary, setSummary] = useState(null);
   const [householdSummary, setHouseholdSummary] = useState(null);
   const [history, setHistory] = useState([]);
+  const [historyFilter, setHistoryFilter] = useState('all'); // 'all' | userId string
+  const [members, setMembers] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [investments, setInvestments] = useState([]);
   const [allTransactions, setAllTransactions] = useState([]);
@@ -88,7 +90,7 @@ export default function Overview() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [sumRes, householdSumRes, histRes, txRes, invRes, allTxRes, goalsRes] = await Promise.all([
+      const [sumRes, householdSumRes, histRes, txRes, invRes, allTxRes, goalsRes, membersRes] = await Promise.all([
         api.get(`/summary?month=${month}&scope=user`),
         api.get(`/summary?month=${month}`),
         api.get('/history'),
@@ -96,11 +98,12 @@ export default function Overview() {
         api.get('/investments'),
         api.get('/transactions?limit=200&scope=user'),
         api.get('/goals'),
+        api.get('/auth/me'),
       ]);
       setSummary(sumRes.data);
       setHouseholdSummary(householdSumRes.data);
       setHistory(histRes.data || []);
-
+      setMembers(membersRes.data?.members || []);
       setTransactions((txRes.data.transactions || txRes.data || []).slice(0, 5));
       setInvestments(invRes.data || []);
       setAllTransactions(allTxRes.data.transactions || allTxRes.data || []);
@@ -113,6 +116,12 @@ export default function Overview() {
   }, [month]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  // Re-fetch history when filter changes
+  useEffect(() => {
+    const param = historyFilter === 'all' ? '' : `&userId=${historyFilter}`;
+    api.get(`/history${param ? '?' + param.slice(1) : ''}`).then(r => setHistory(r.data || [])).catch(() => {});
+  }, [historyFilter]);
 
   const spendingByCategory = householdSummary?.spendingByCategory || [];
   const budgets = householdSummary?.budgets || [];
@@ -296,7 +305,24 @@ export default function Overview() {
       {/* Income vs Expenses bar chart */}
       {history.length > 0 && (
         <div className="chart-card">
-          <div className="chart-title">Income vs Expenses — 6 Months</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+            <div className="chart-title" style={{ margin: 0 }}>Income vs Expenses — 6 Months</div>
+            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+              <button
+                className={`tab-pill${historyFilter === 'all' ? ' active' : ''}`}
+                style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem' }}
+                onClick={() => setHistoryFilter('all')}
+              >All</button>
+              {members.map(m => (
+                <button
+                  key={m._id}
+                  className={`tab-pill${historyFilter === m._id ? ' active' : ''}`}
+                  style={{ fontSize: '0.75rem', padding: '0.2rem 0.6rem' }}
+                  onClick={() => setHistoryFilter(m._id)}
+                >{m._id === user?.id ? 'Me' : m.name.split(' ')[0]}</button>
+              ))}
+            </div>
+          </div>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={history} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
               <XAxis dataKey="label" tick={{ fontSize: 12 }} />

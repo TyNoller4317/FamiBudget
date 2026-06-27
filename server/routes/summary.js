@@ -96,7 +96,14 @@ router.get('/summary', auth, async (req, res) => {
 // GET /api/history — last 6 months of income/expense/cumulative net
 router.get('/history', auth, async (req, res) => {
   try {
-    const { householdId } = req.user;
+    const { householdId, id: userId } = req.user;
+    const { scope, userId: filterUserId } = req.query;
+
+    const baseMatch = filterUserId
+      ? { householdId, createdBy: new ObjectId(filterUserId) }
+      : scope === 'user'
+        ? { householdId, createdBy: new ObjectId(userId) }
+        : { householdId };
 
     // Build list of last 6 months (oldest first)
     const months = [];
@@ -116,11 +123,11 @@ router.get('/history', auth, async (req, res) => {
         const dateFilter = { date: { $gte: startDate, $lte: endDate } };
         const [incAgg, expAgg] = await Promise.all([
           Transaction.aggregate([
-            { $match: { householdId, type: 'income', ...dateFilter } },
+            { $match: { ...baseMatch, type: 'income', ...dateFilter } },
             { $group: { _id: null, total: { $sum: '$amount' } } },
           ]),
           Transaction.aggregate([
-            { $match: { householdId, type: 'expense', ...dateFilter } },
+            { $match: { ...baseMatch, type: 'expense', ...dateFilter } },
             { $group: { _id: null, total: { $sum: '$amount' } } },
           ]),
         ]);
